@@ -800,7 +800,7 @@ def visualize_pearson_correlations(model, x_train, y_train, x_val, y_val, x_test
         x_test: Test input data (optional)
         y_test: Test target data (optional)
         baseline_methods: Dictionary of baseline method results (optional)
-            Format: {'method_name': {'train': score, 'val': score, 'test': score}}
+            Format: {'method_name': {'Entrenamiento': score, 'Validación': score, 'Prueba': score}}
     
     Returns:
         None (displays plot)
@@ -815,15 +815,15 @@ def visualize_pearson_correlations(model, x_train, y_train, x_val, y_val, x_test
     # Calculate Pearson correlations
     correlations = {
         'Neural Model': {
-            'Train': pearsonr(train_pred.flatten(), y_train.flatten())[0],
-            'Validation': pearsonr(val_pred.flatten(), y_val.flatten())[0]
+            'Entrenamiento': pearsonr(train_pred.flatten(), y_train.flatten())[0],
+            'Validación': pearsonr(val_pred.flatten(), y_val.flatten())[0]
         }
     }
     
     # Add test results if provided
     if x_test is not None and y_test is not None:
         test_pred = model.predict(x_test)
-        correlations['Neural Model']['Test'] = pearsonr(test_pred.flatten(), y_test.flatten())[0]
+        correlations['Neural Model']['Prueba'] = pearsonr(test_pred.flatten(), y_test.flatten())[0]
     
     # Add baseline methods if provided
     if baseline_methods:
@@ -832,7 +832,11 @@ def visualize_pearson_correlations(model, x_train, y_train, x_val, y_val, x_test
     
     # Prepare data for plotting
     methods = list(correlations.keys())
-    datasets = list(correlations[methods[0]].keys())
+    
+    # Use a consistent set of dataset keys that match the baseline_methods format
+    datasets = ['Entrenamiento', 'Validación']
+    if x_test is not None and y_test is not None:
+        datasets.append('Prueba')
     
     # Set bar width
     bar_width = 0.8 / len(methods)
@@ -842,7 +846,15 @@ def visualize_pearson_correlations(model, x_train, y_train, x_val, y_val, x_test
     
     # Plot bars for each method
     for i, method in enumerate(methods):
-        method_values = [correlations[method][dataset] for dataset in datasets]
+        method_values = []
+        for dataset in datasets:
+            # Get the value if it exists, otherwise use 0
+            if dataset in correlations[method]:
+                method_values.append(correlations[method][dataset])
+            else:
+                print(f"Warning: Missing data for {method} on {dataset}. Using 0.")
+                method_values.append(0)
+                
         offset = (i - len(methods)/2 + 0.5) * bar_width
         bars = plt.bar(x_pos + offset, method_values, width=bar_width, 
                        label=method, alpha=0.8)
@@ -855,8 +867,8 @@ def visualize_pearson_correlations(model, x_train, y_train, x_val, y_val, x_test
     
     # Add labels and title
     plt.xlabel('Dataset')
-    plt.ylabel('Pearson Correlation')
-    plt.title('Pearson Correlation by Method and Dataset')
+    plt.ylabel('Correlación de Pearson')
+    plt.title('Correlación de Pearson por Método y Dataset')
     plt.xticks(x_pos, datasets)
     plt.ylim(0, 1.0)
     plt.legend()
